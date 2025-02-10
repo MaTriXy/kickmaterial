@@ -20,7 +20,9 @@ local.properties
 .project
 
 # Android Studio
-.idea/
+/.idea/*
+!/.idea/codeStyleSettings.xml
+!/.idea/vcs.xml
 .gradle
 /*/local.properties
 /*/out
@@ -33,6 +35,7 @@ local.properties
 *.swp
 *.DS_Store
 /build
+/captures
 
 /app/crashlytics.properties
 /app/src/main/assets/crashlytics-build.properties

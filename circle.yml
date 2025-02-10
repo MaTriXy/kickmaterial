@@ -1,3 +1,8 @@
+general:
+  artifacts:
+    - "app/build/outputs" # APKs, lint, pmd,...
+    - "app/build/reports"
+
 machine:
   java:
     version: oraclejdk8
@@ -9,24 +14,26 @@ machine:
     JAVA8_HOME: "/usr/lib/jvm/jdk1.8.0"
     TERM: "dumb"
     ADB_INSTALL_TIMEOUT: "10"
+    _JAVA_OPTIONS: "-Xmx1400m -XX:ParallelGCThreads=2 -XX:ConcGCThreads=2 -XX:ParallelGCThreads=2 -Djava.util.concurrent.ForkJoinPool.common.parallelism=2"
   post:
-    # Turn off unneded services to free memory.
-    - for service in {"apache2","beanstalkd","cassandra","couchbase-server","couchdb","docker","elasticsearch","memcached","mongodb","mysql","neo4j-service","postgresql","puppet","redis-server","riak","solr","sphinxsearch","zookeeper"}; do sudo service $service stop; done
+    # Turn off unneeded services to free memory.
+    - for service in "apache2" "beanstalkd" "cassandra" "couchbase-server" "couchdb" "docker" "elasticsearch" "memcached" "mongodb" "mysql" "neo4j-service" "postgresql" "puppet" "rabbitmq-server" "redis-server" "riak" "solr" "sphinxsearch" "zookeeper"; do sudo service $service stop; done
 
 
 dependencies:
   pre:
-    - echo y | android update sdk --no-ui --all --filter tools,android-23,platform-tools,extra-android-m2repository,extra-android-support
-    - echo y | android update sdk --no-ui --all --filter build-tools-23.0.2
+    - ci/update_android_dependencies.sh
+  cache_directories:
+    - /usr/local/android-sdk-linux/tools
+    - /usr/local/android-sdk-linux/extras
+    - /usr/local/android-sdk-linux/build-tools/28.0.3
+    - ~/.android
   override:
     - ./gradlew dependencies
 
+
 test:
-  override:
-    # Test building of all debug flavours and run unit tests.
-    - ./gradlew assembleDebug check -PdisablePreDex
-  post:
-    # copy the build outputs to artifacts
-    - cp -r app/build/outputs $CIRCLE_ARTIFACTS
-    # copy the test results to the test results directory.
-    - cp -r app/build/reports $CIRCLE_TEST_REPORTS
+  pre:
+    - case $CIRCLE_NODE_INDEX in 0) ./gradlew assembleDebug ;; 1) ./gradlew check && ./gradlew lint ;; esac:
+        parallel: true
+
